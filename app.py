@@ -1,5 +1,6 @@
 """Aplicacion Streamlit para la Funcionalidad 1 del proyecto ROE DuPont."""
 
+import plotly.graph_objects as go
 import streamlit as st
 
 
@@ -8,6 +9,71 @@ def safe_division(numerator: float, denominator: float) -> float:
     if denominator == 0:
         return 0.0
     return numerator / denominator
+
+
+def build_dupont_prism(margen: float, rotacion: float, apalancamiento: float) -> go.Figure:
+    """Construye un prisma 3D para visualizar la interaccion de factores DuPont."""
+    x = max(margen, 0.0)
+    y = max(rotacion, 0.0)
+    z = max(apalancamiento, 0.0)
+
+    vertices_x = [0, x, x, 0, 0, x, x, 0]
+    vertices_y = [0, 0, y, y, 0, 0, y, y]
+    vertices_z = [0, 0, 0, 0, z, z, z, z]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Mesh3d(
+            x=vertices_x,
+            y=vertices_y,
+            z=vertices_z,
+            i=[0, 0, 0, 1, 1, 2, 4, 4, 5, 6, 2, 3],
+            j=[1, 2, 4, 2, 5, 3, 5, 6, 6, 7, 6, 7],
+            k=[2, 3, 5, 3, 6, 7, 6, 7, 1, 5, 7, 4],
+            opacity=0.45,
+            color="#1f77b4",
+            name="Prisma ROE",
+            hovertemplate=(
+                "Margen Neto: %{x:.2f}<br>"
+                "Rotacion de Activos: %{y:.2f}<br>"
+                "Apalancamiento Financiero: %{z:.2f}<extra></extra>"
+            ),
+        )
+    )
+
+    # Aristas para reforzar la lectura visual del prisma.
+    edges = [
+        (0, 1), (1, 2), (2, 3), (3, 0),
+        (4, 5), (5, 6), (6, 7), (7, 4),
+        (0, 4), (1, 5), (2, 6), (3, 7),
+    ]
+    for start, end in edges:
+        fig.add_trace(
+            go.Scatter3d(
+                x=[vertices_x[start], vertices_x[end]],
+                y=[vertices_y[start], vertices_y[end]],
+                z=[vertices_z[start], vertices_z[end]],
+                mode="lines",
+                line=dict(color="#0b3d91", width=5),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+    fig.update_layout(
+        title="Prisma 3D del Modelo DuPont",
+        margin=dict(l=0, r=0, b=0, t=40),
+        scene=dict(
+            xaxis_title="Margen Neto",
+            yaxis_title="Rotacion de Activos",
+            zaxis_title="Apalancamiento Financiero",
+            xaxis=dict(backgroundcolor="#f8fafc"),
+            yaxis=dict(backgroundcolor="#f8fafc"),
+            zaxis=dict(backgroundcolor="#f8fafc"),
+            camera=dict(eye=dict(x=1.5, y=1.4, z=1.2)),
+        ),
+    )
+    return fig
 
 
 st.set_page_config(
@@ -83,3 +149,18 @@ st.latex(
     r"\times \left(\frac{Ventas}{Activos\ Promedio}\right)"
     r"\times \left(\frac{Activos\ Promedio}{Patrimonio\ Promedio}\right)"
 )
+
+st.subheader("Visualizacion 3D del Prisma ROE")
+st.markdown(
+    "El prisma muestra como interactuan margen neto, rotacion de activos y "
+    "apalancamiento financiero en la descomposicion del ROE."
+)
+
+if margen_neto < 0:
+    st.info(
+        "El margen neto es negativo. Para mantener una lectura geometrica clara, "
+        "el prisma usa 0 en ese eje, pero el ROE mostrado conserva el calculo real."
+    )
+
+prisma_fig = build_dupont_prism(margen_neto, rotacion_activos, apalancamiento_financiero)
+st.plotly_chart(prisma_fig, use_container_width=True)
