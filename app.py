@@ -1,4 +1,4 @@
-"""Aplicacion Streamlit para la Funcionalidad 1 del proyecto ROE DuPont."""
+"""Aplicacion Streamlit para las funcionalidades 1, 2 y 3 de ROE DuPont."""
 
 import plotly.graph_objects as go
 import streamlit as st
@@ -164,3 +164,93 @@ if margen_neto < 0:
 
 prisma_fig = build_dupont_prism(margen_neto, rotacion_activos, apalancamiento_financiero)
 st.plotly_chart(prisma_fig, use_container_width=True)
+
+st.subheader("Estados Financieros Simplificados")
+st.markdown(
+    "Se presentan un Estado de Resultados y un Balance General estimados a partir "
+    "de las variables de entrada."
+)
+
+# Funcionalidad 3: Estado de Resultados con logica Ventas = Gastos + Utilidad Neta.
+gastos_estimados = ventas - utilidad_neta
+
+if gastos_estimados < 0:
+    st.warning(
+        "La utilidad neta supera a las ventas en el escenario actual. "
+        "El valor de gastos se muestra negativo para mantener la identidad "
+        "Ventas = Gastos + Utilidad Neta."
+    )
+
+estado_resultados_fig = go.Figure(
+    go.Bar(
+        x=[ventas, gastos_estimados, utilidad_neta],
+        y=["Ventas", "Gastos", "Utilidad Neta"],
+        orientation="h",
+        marker_color=["#1f77b4", "#ff7f0e", "#2ca02c"],
+        text=[f"${ventas:,.0f}", f"${gastos_estimados:,.0f}", f"${utilidad_neta:,.0f}"],
+        textposition="auto",
+    )
+)
+estado_resultados_fig.update_layout(
+    title="Estado de Resultados Simplificado",
+    xaxis_title="Monto",
+    yaxis_title="Cuenta",
+    template="plotly_white",
+    height=360,
+)
+
+# Balance simplificado: Activos = Deuda + Patrimonio.
+deuda_estimada = activos_promedio - patrimonio_promedio
+if deuda_estimada < 0:
+    st.warning(
+        "El patrimonio promedio supera a los activos promedio en este escenario. "
+        "La deuda estimada se muestra negativa para reflejar la identidad "
+        "Activos = Deuda + Patrimonio."
+    )
+
+balance_general_fig = go.Figure()
+balance_general_fig.add_trace(
+    go.Bar(
+        x=["Activos"],
+        y=[activos_promedio],
+        name="Activos",
+        marker_color="#636efa",
+        text=[f"${activos_promedio:,.0f}"],
+        textposition="auto",
+    )
+)
+balance_general_fig.add_trace(
+    go.Bar(
+        x=["Patrimonio + Deuda"],
+        y=[patrimonio_promedio],
+        name="Patrimonio",
+        marker_color="#00cc96",
+        text=[f"${patrimonio_promedio:,.0f}"],
+        textposition="auto",
+    )
+)
+balance_general_fig.add_trace(
+    go.Bar(
+        x=["Patrimonio + Deuda"],
+        y=[deuda_estimada],
+        name="Deuda",
+        marker_color="#ef553b",
+        text=[f"${deuda_estimada:,.0f}"],
+        textposition="auto",
+    )
+)
+balance_general_fig.update_layout(
+    title="Balance General Simplificado",
+    xaxis_title="Estructura",
+    yaxis_title="Monto",
+    barmode="stack",
+    template="plotly_white",
+    height=360,
+)
+
+chart_col_1, chart_col_2 = st.columns(2)
+with chart_col_1:
+    st.plotly_chart(estado_resultados_fig, use_container_width=True)
+
+with chart_col_2:
+    st.plotly_chart(balance_general_fig, use_container_width=True)
